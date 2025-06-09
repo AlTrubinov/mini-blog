@@ -23,13 +23,11 @@ func NewStorage(ctx context.Context, DBConf config.Database) (*Storage, error) {
 	)
 	dbPool, err := pgxpool.New(ctx, dbConnStr)
 	if err != nil {
-		errMsg := fmt.Sprintf("unable to create connection pool: %v", err.Error())
-		return nil, fmt.Errorf(errMsg)
+		return nil, fmt.Errorf("unable to create connection pool: %w", err)
 	}
 	if err = dbPool.Ping(ctx); err != nil {
-		errMsg := fmt.Sprintf("unable to ping connection pool: %v", err.Error())
 		dbPool.Close()
-		return nil, fmt.Errorf(errMsg)
+		return nil, fmt.Errorf("unable to ping connection pool: %w", err)
 	}
 
 	return &Storage{db: dbPool}, nil
