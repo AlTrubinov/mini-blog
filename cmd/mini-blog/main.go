@@ -1,7 +1,10 @@
 package main
 
 import (
+	"context"
 	"log/slog"
+	"mini-blog/internal/storage/postgres"
+	"os"
 
 	"mini-blog/internal/config"
 	"mini-blog/pkg/logger"
@@ -13,7 +16,14 @@ func main() {
 	logger.Init(cfg.Env)
 	slog.Info("logger initialized")
 
-	// TODO: init storage
+	ctx := context.Background()
+	storagePool, err := postgres.NewStorage(ctx, cfg.Database)
+	if err != nil {
+		slog.Error("storage initialize error:", err)
+		os.Exit(1)
+	}
+	defer storagePool.Close()
+	slog.Info("storage initialized")
 
 	// TODO: init handler
 
