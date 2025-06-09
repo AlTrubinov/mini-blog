@@ -1,15 +1,17 @@
 package main
 
 import (
+	"log/slog"
+
 	"mini-blog/internal/config"
+	"mini-blog/pkg/logger"
 )
 
 func main() {
 	cfg := config.NewConfig()
 
-	_ = cfg
-
-	// TODO: init logger
+	logger.Init(cfg.Env)
+	slog.Info("logger initialized")
 
 	// TODO: init storage
 
