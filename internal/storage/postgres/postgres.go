@@ -2,9 +2,11 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"mini-blog/internal/config"
@@ -97,4 +99,19 @@ func (storage *Storage) GetUserNotes(ctx context.Context, userId int64, limit in
 		slog.Error("rows error, %w", err)
 	}
 	return resNotes, nil
+}
+
+func (storage *Storage) GetUserNote(ctx context.Context, userId int64, noteId int64) (note.Note, error) {
+	var n note.Note
+
+	stmt := "SELECT id,user_id,title,content,created_at,updated_at FROM notes WHERE user_id = $1 AND id = $2"
+
+	err := storage.db.QueryRow(ctx, stmt, userId, noteId).Scan(&n.Id, &n.UserId, &n.Title, &n.Content, &n.CreatedAt, &n.UpdatedAt)
+
+	if errors.Is(err, pgx.ErrNoRows) {
+		return note.Note{}, err
+	} else if err != nil {
+		return note.Note{}, fmt.Errorf("get note error, %w", err)
+	}
+	return n, nil
 }

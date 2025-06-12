@@ -11,6 +11,7 @@ import (
 
 	"mini-blog/internal/config"
 	"mini-blog/internal/mini-blog/handlers/users/notes/create"
+	"mini-blog/internal/mini-blog/handlers/users/notes/get"
 	"mini-blog/internal/mini-blog/handlers/users/notes/list"
 	"mini-blog/internal/mini-blog/handlers/users/registration"
 	"mini-blog/internal/storage/postgres"
@@ -42,6 +43,7 @@ func main() {
 	router.Post("/users", registration.New(storagePool))
 	router.Post("/users/{user_id}/notes", create.New(storagePool))
 	router.Get("/users/{user_id}/notes", list.New(storagePool))
+	router.Get("/users/{user_id}/notes/{note_id}", get.New(storagePool))
 
 	slog.Info("starting server", slog.String("address", cfg.Address))
 
