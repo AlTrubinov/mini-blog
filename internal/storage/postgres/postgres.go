@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -67,4 +68,33 @@ func (storage *Storage) CreateNote(ctx context.Context, userId int64, title stri
 	}
 
 	return n.Id, nil
+}
+
+func (storage *Storage) GetNotesList(ctx context.Context, userId int64, limit int, offset int, order string) ([]note.Note, error) {
+	var resNotes []note.Note
+
+	stmt := fmt.Sprintf(
+		"SELECT id,user_id,title,content,created_at,updated_at FROM notes WHERE user_id = $1 ORDER BY id %s LIMIT $2 OFFSET $3",
+		order,
+	)
+
+	rows, err := storage.db.Query(ctx, stmt, userId, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("get notes list error, %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var n note.Note
+		err := rows.Scan(&n.Id, &n.UserId, &n.Title, &n.Content, &n.CreatedAt, &n.UpdatedAt)
+		if err != nil {
+			continue
+		}
+		resNotes = append(resNotes, n)
+	}
+
+	if err := rows.Err(); err != nil {
+		slog.Error("rows error, %w", err)
+	}
+	return resNotes, nil
 }

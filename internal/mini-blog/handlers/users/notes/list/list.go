@@ -1,0 +1,77 @@
+package list
+
+import (
+	"context"
+	"log/slog"
+	"mini-blog/internal/lib/logger/sl"
+	"net/http"
+	"strconv"
+	"strings"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/render"
+
+	"mini-blog/internal/lib/api/response"
+	"mini-blog/internal/models/note"
+)
+
+type Response struct {
+	Notes []note.Note `json:"notes"`
+	response.Response
+}
+
+type NotesList interface {
+	GetNotesList(ctx context.Context, userId int64, limit int, offset int, order string) ([]note.Note, error)
+}
+
+const (
+	defaultParamLimit  = 10
+	defaultParamOffset = 0
+
+	orderByAsc  = "ASC"
+	orderByDesc = "DESC"
+)
+
+func New(list NotesList) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userId, err := strconv.ParseInt(chi.URLParam(r, "user_id"), 10, 64)
+		if err != nil {
+			errMsg := "invalid user id"
+			slog.Info(errMsg)
+
+			render.JSON(w, r, Response{
+				Response: response.Error(errMsg),
+			})
+			return
+		}
+
+		query := r.URL.Query()
+		limit, err := strconv.Atoi(query.Get("limit"))
+		if err != nil {
+			limit = defaultParamLimit
+		}
+		offset, err := strconv.Atoi(query.Get("offset"))
+		if err != nil {
+			offset = defaultParamOffset
+		}
+		order := strings.ToUpper(query.Get("order"))
+		if order != orderByAsc && order != orderByDesc {
+			order = orderByAsc
+		}
+
+		slog.Info("query params parsed", slog.Int64("user_id", userId), slog.Int("limit", limit), slog.Int("offset", offset), slog.String("order", order))
+
+		notes, err := list.GetNotesList(r.Context(), userId, limit, offset, order)
+		if err != nil {
+			errMsg := "get notes list error"
+			slog.Error(errMsg, sl.Err(err))
+			render.JSON(w, r, Response{Response: response.Error(errMsg)})
+			return
+		}
+
+		render.JSON(w, r, Response{
+			Notes:    notes,
+			Response: response.Ok(),
+		})
+	}
+}
