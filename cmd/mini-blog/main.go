@@ -3,10 +3,15 @@ package main
 import (
 	"context"
 	"log/slog"
-	"mini-blog/internal/storage/postgres"
+	"net/http"
 	"os"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+
 	"mini-blog/internal/config"
+	"mini-blog/internal/mini-blog/handlers/users/registration"
+	"mini-blog/internal/storage/postgres"
 	"mini-blog/pkg/logger"
 )
 
@@ -25,7 +30,28 @@ func main() {
 	defer storagePool.Close()
 	slog.Info("storage initialized")
 
-	// TODO: init handler
+	router := chi.NewRouter()
+	router.Use(middleware.RequestID)
+	router.Use(middleware.RealIP)
+	router.Use(middleware.Logger)
+	router.Use(middleware.Recoverer)
+	router.Use(middleware.URLFormat)
 
-	// TODO: run server
+	router.Post("/users", registration.New(storagePool))
+
+	slog.Info("starting server", slog.String("address", cfg.Address))
+
+	srv := &http.Server{
+		Addr:         cfg.Address,
+		Handler:      router,
+		ReadTimeout:  cfg.HTTPServer.Timeout,
+		WriteTimeout: cfg.HTTPServer.Timeout,
+		IdleTimeout:  cfg.HTTPServer.IdleTimeout,
+	}
+
+	if err := srv.ListenAndServe(); err != nil {
+		slog.Error("failed to start server")
+	}
+
+	slog.Error("server stopped")
 }
