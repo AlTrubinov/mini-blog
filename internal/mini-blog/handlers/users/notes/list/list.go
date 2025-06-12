@@ -21,7 +21,7 @@ type Response struct {
 }
 
 type NotesList interface {
-	GetNotesList(ctx context.Context, userId int64, limit int, offset int, order string) ([]note.Note, error)
+	GetUserNotes(ctx context.Context, userId int64, limit int, offset int, order string) ([]note.Note, error)
 }
 
 const (
@@ -61,7 +61,7 @@ func New(list NotesList) http.HandlerFunc {
 
 		slog.Info("query params parsed", slog.Int64("user_id", userId), slog.Int("limit", limit), slog.Int("offset", offset), slog.String("order", order))
 
-		notes, err := list.GetNotesList(r.Context(), userId, limit, offset, order)
+		notes, err := list.GetUserNotes(r.Context(), userId, limit, offset, order)
 		if err != nil {
 			errMsg := "get notes list error"
 			slog.Error(errMsg, sl.Err(err))

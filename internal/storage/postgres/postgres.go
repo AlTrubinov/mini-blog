@@ -70,7 +70,7 @@ func (storage *Storage) CreateNote(ctx context.Context, userId int64, title stri
 	return n.Id, nil
 }
 
-func (storage *Storage) GetNotesList(ctx context.Context, userId int64, limit int, offset int, order string) ([]note.Note, error) {
+func (storage *Storage) GetUserNotes(ctx context.Context, userId int64, limit int, offset int, order string) ([]note.Note, error) {
 	var resNotes []note.Note
 
 	stmt := fmt.Sprintf(
