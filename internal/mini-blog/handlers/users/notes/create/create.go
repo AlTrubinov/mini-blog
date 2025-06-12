@@ -1,11 +1,13 @@
-package registration
+package create
 
 import (
 	"context"
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
 
@@ -14,25 +16,39 @@ import (
 )
 
 type Request struct {
-	Username string `json:"username" validate:"required"`
+	UserId  int64  `json:"user_id" validate:"required"`
+	Title   string `json:"title" validate:"required"`
+	Content string `json:"content" validate:"required"`
 }
 
 type Response struct {
-	Id       int64  `json:"id,omitempty"`
-	Username string `json:"username,omitempty"`
+	Id int64 `json:"id,omitempty"`
 	response.Response
 }
 
-//go:generate mockery
-type UserSaver interface {
-	SaveUser(ctx context.Context, username string) (int64, error)
+type NotesCreator interface {
+	CreateNote(ctx context.Context, userId int64, title string, content string) (int64, error)
 }
 
-func New(userSaver UserSaver) http.HandlerFunc {
+func New(creator NotesCreator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req Request
 
-		err := render.DecodeJSON(r.Body, &req)
+		userId, err := strconv.Atoi(
+			chi.URLParam(r, "user_id"),
+		)
+		if err != nil {
+			errMsg := "invalid user id"
+			slog.Info(errMsg)
+
+			render.JSON(w, r, Response{
+				Response: response.Error(errMsg),
+			})
+			return
+		}
+		req.UserId = int64(userId)
+
+		err = render.DecodeJSON(r.Body, &req)
 		if err != nil {
 			errMsg := "decode request body failed"
 			slog.Error(errMsg, sl.Err(err))
@@ -52,17 +68,16 @@ func New(userSaver UserSaver) http.HandlerFunc {
 			return
 		}
 
-		userId, err := userSaver.SaveUser(r.Context(), req.Username)
+		noteId, err := creator.CreateNote(r.Context(), req.UserId, req.Title, req.Content)
 		if err != nil {
-			errMsg := "save user failed"
+			errMsg := "create note error"
 			slog.Error(errMsg, sl.Err(err))
 			render.JSON(w, r, Response{Response: response.Error(errMsg)})
 			return
 		}
 
 		render.JSON(w, r, Response{
-			Id:       userId,
-			Username: req.Username,
+			Id:       noteId,
 			Response: response.Ok(),
 		})
 	}

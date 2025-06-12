@@ -7,6 +7,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"mini-blog/internal/config"
+	"mini-blog/internal/models/note"
 	"mini-blog/internal/models/user"
 )
 
@@ -41,7 +42,8 @@ func (storage *Storage) Close() {
 func (storage *Storage) SaveUser(ctx context.Context, username string) (int64, error) {
 	var u user.User
 
-	err := storage.db.QueryRow(ctx,
+	err := storage.db.QueryRow(
+		ctx,
 		"INSERT INTO users (username) VALUES ($1) RETURNING id, username, created_at",
 		username,
 	).Scan(&u.Id, &u.Username, &u.CreatedAt)
@@ -50,4 +52,19 @@ func (storage *Storage) SaveUser(ctx context.Context, username string) (int64, e
 	}
 
 	return u.Id, nil
+}
+
+func (storage *Storage) CreateNote(ctx context.Context, userId int64, title string, content string) (int64, error) {
+	var n note.Note
+
+	err := storage.db.QueryRow(
+		ctx,
+		"INSERT INTO notes (user_id, title, content) VALUES ($1, $2, $3) RETURNING id",
+		userId, title, content,
+	).Scan(&n.Id)
+	if err != nil {
+		return 0, fmt.Errorf("save note error, %w", err)
+	}
+
+	return n.Id, nil
 }

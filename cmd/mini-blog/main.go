@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 
 	"mini-blog/internal/config"
+	"mini-blog/internal/mini-blog/handlers/users/notes/create"
 	"mini-blog/internal/mini-blog/handlers/users/registration"
 	"mini-blog/internal/storage/postgres"
 	"mini-blog/pkg/logger"
@@ -38,6 +39,7 @@ func main() {
 	router.Use(middleware.URLFormat)
 
 	router.Post("/users", registration.New(storagePool))
+	router.Post("/users/{user_id}/notes", create.New(storagePool))
 
 	slog.Info("starting server", slog.String("address", cfg.Address))
 
