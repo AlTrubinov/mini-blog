@@ -115,3 +115,18 @@ func (storage *Storage) GetUserNote(ctx context.Context, userId int64, noteId in
 	}
 	return n, nil
 }
+
+func (storage *Storage) UpdateNote(ctx context.Context, userId int64, noteId int64, title string, content string) error {
+	stmt := "UPDATE notes SET title = $1, content = $2, updated_at = CURRENT_TIMESTAMP WHERE user_id = $3 AND id = $4"
+
+	res, err := storage.db.Exec(ctx, stmt, title, content, userId, noteId)
+	if err != nil {
+		return fmt.Errorf("update note error, %w", err)
+	}
+
+	if rowsAffected := res.RowsAffected(); rowsAffected == 0 {
+		return fmt.Errorf("note not found")
+	}
+
+	return nil
+}
