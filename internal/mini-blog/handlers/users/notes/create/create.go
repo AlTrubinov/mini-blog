@@ -33,8 +33,10 @@ func New(creator NotesCreator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req Request
 
-		userId, err := strconv.Atoi(
+		userId, err := strconv.ParseInt(
 			chi.URLParam(r, "user_id"),
+			10,
+			64,
 		)
 		if err != nil {
 			errMsg := "invalid user id"
@@ -66,7 +68,7 @@ func New(creator NotesCreator) http.HandlerFunc {
 			return
 		}
 
-		noteId, err := creator.CreateNote(r.Context(), int64(userId), req.Title, req.Content)
+		noteId, err := creator.CreateNote(r.Context(), userId, req.Title, req.Content)
 		if err != nil {
 			errMsg := "create note error"
 			slog.Error(errMsg, sl.Err(err))
