@@ -16,9 +16,8 @@ import (
 )
 
 type Request struct {
-	UserId  int64  `json:"user_id" validate:"required"`
 	Title   string `json:"title" validate:"required"`
-	Content string `json:"content" validate:"required"`
+	Content string `json:"content,omitempty"`
 }
 
 type Response struct {
@@ -46,7 +45,6 @@ func New(creator NotesCreator) http.HandlerFunc {
 			})
 			return
 		}
-		req.UserId = int64(userId)
 
 		err = render.DecodeJSON(r.Body, &req)
 		if err != nil {
@@ -68,7 +66,7 @@ func New(creator NotesCreator) http.HandlerFunc {
 			return
 		}
 
-		noteId, err := creator.CreateNote(r.Context(), req.UserId, req.Title, req.Content)
+		noteId, err := creator.CreateNote(r.Context(), int64(userId), req.Title, req.Content)
 		if err != nil {
 			errMsg := "create note error"
 			slog.Error(errMsg, sl.Err(err))
