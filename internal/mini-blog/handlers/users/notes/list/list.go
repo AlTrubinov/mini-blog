@@ -7,8 +7,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/go-chi/render"
-
 	"mini-blog/internal/lib/api/response"
 	"mini-blog/internal/lib/api/validapi"
 	"mini-blog/internal/lib/logger/sl"
@@ -37,7 +35,7 @@ func New(list NotesList) http.HandlerFunc {
 		userId, err := validapi.Int64UrlParam(r, "user_id")
 		if err != nil {
 			slog.Error(err.Error())
-			render.JSON(w, r, Response{Response: response.Error(err.Error())})
+			response.Json(w, r, http.StatusBadRequest, response.ValidationError(err.Error()))
 			return
 		}
 
@@ -61,11 +59,11 @@ func New(list NotesList) http.HandlerFunc {
 		if err != nil {
 			errMsg := "get notes list error"
 			slog.Error(errMsg, sl.Err(err))
-			render.JSON(w, r, Response{Response: response.Error(errMsg)})
+			response.Json(w, r, http.StatusBadRequest, response.ValidationError(err.Error()))
 			return
 		}
 
-		render.JSON(w, r, Response{
+		response.Json(w, r, http.StatusOK, Response{
 			Notes:    notes,
 			Response: response.Ok(),
 		})

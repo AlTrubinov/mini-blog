@@ -1,22 +1,33 @@
 package logger
 
 import (
-	"log"
-	"log/slog"
-	"os"
+	"fmt"
+	"net/http"
+	"time"
 )
 
-func Init(env string) {
-	var logger *slog.Logger
+type statusResponseWriter struct {
+	http.ResponseWriter
+	status int
+}
 
-	switch env {
-	case "local":
-		logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-	case "product":
-		logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
-	default:
-		log.Fatalf("unknown env name: %s", env)
-	}
+func (w *statusResponseWriter) WriteHeader(code int) {
+	w.status = code
+	w.ResponseWriter.WriteHeader(code)
+}
 
-	slog.SetDefault(logger)
+func ApiInfo(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		startTime := time.Now()
+		sw := &statusResponseWriter{ResponseWriter: w, status: http.StatusOK}
+
+		next.ServeHTTP(sw, r)
+
+		duration := time.Since(startTime).Milliseconds()
+		statusText := http.StatusText(sw.status)
+
+		currTime := time.Now().Format("2006-01-02 15:04:05")
+
+		fmt.Printf("[%s] %s %s - %d %s (%dms)\n", currTime, r.Method, r.RequestURI, sw.status, statusText, duration)
+	})
 }

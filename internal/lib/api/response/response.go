@@ -1,24 +1,57 @@
 package response
 
-type Response struct {
-	Status string `json:"status"`
-	Error  string `json:"error,omitempty"`
-}
+import (
+	"net/http"
 
-const (
-	StatusOk    = "Ok"
-	StatusError = "Error"
+	"github.com/go-chi/render"
 )
+
+type Response struct {
+	Code  int    `json:"code"`
+	Error string `json:"error,omitempty"`
+}
 
 func Ok() Response {
 	return Response{
-		Status: StatusOk,
+		Code: http.StatusOK,
 	}
 }
 
-func Error(msg string) Response {
+func Created() Response {
 	return Response{
-		Status: StatusError,
-		Error:  msg,
+		Code: http.StatusCreated,
 	}
+}
+
+func ValidationError(msg string) Response {
+	return Response{
+		Code:  http.StatusBadRequest,
+		Error: msg,
+	}
+}
+
+func NotFound(msg string) Response {
+	return Response{
+		Code:  http.StatusNotFound,
+		Error: msg,
+	}
+}
+
+func Forbidden(msg string) Response {
+	return Response{
+		Code:  http.StatusForbidden,
+		Error: msg,
+	}
+}
+
+func InternalError(msg string) Response {
+	return Response{
+		Code:  http.StatusInternalServerError,
+		Error: msg,
+	}
+}
+
+func Json(w http.ResponseWriter, r *http.Request, code int, v interface{}) {
+	w.WriteHeader(code)
+	render.JSON(w, r, v)
 }

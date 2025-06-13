@@ -5,16 +5,10 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/go-chi/render"
-
 	"mini-blog/internal/lib/api/response"
 	"mini-blog/internal/lib/api/validapi"
 	"mini-blog/internal/lib/logger/sl"
 )
-
-type Response struct {
-	response.Response
-}
 
 type NoteDeleter interface {
 	DeleteNote(ctx context.Context, userId int64, noteId int64) error
@@ -25,14 +19,14 @@ func New(noteDeleter NoteDeleter) http.HandlerFunc {
 		userId, err := validapi.Int64UrlParam(r, "user_id")
 		if err != nil {
 			slog.Error(err.Error())
-			render.JSON(w, r, Response{Response: response.Error(err.Error())})
+			response.Json(w, r, http.StatusBadRequest, response.ValidationError(err.Error()))
 			return
 		}
 
 		noteId, err := validapi.Int64UrlParam(r, "note_id")
 		if err != nil {
 			slog.Error(err.Error())
-			render.JSON(w, r, Response{Response: response.Error(err.Error())})
+			response.Json(w, r, http.StatusBadRequest, response.ValidationError(err.Error()))
 			return
 		}
 
@@ -42,10 +36,10 @@ func New(noteDeleter NoteDeleter) http.HandlerFunc {
 		if err != nil {
 			errMsg := "delete note error"
 			slog.Error(errMsg, sl.Err(err))
-			render.JSON(w, r, Response{Response: response.Error(errMsg)})
+			response.Json(w, r, http.StatusBadRequest, response.ValidationError(err.Error()))
 			return
 		}
 
-		render.JSON(w, r, Response{Response: response.Ok()})
+		response.Json(w, r, http.StatusOK, response.Ok())
 	}
 }

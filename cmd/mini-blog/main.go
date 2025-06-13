@@ -2,12 +2,12 @@ package main
 
 import (
 	"context"
+	"log"
 	"log/slog"
 	"net/http"
 	"os"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 
 	"mini-blog/internal/config"
 	"mini-blog/internal/mini-blog/handlers/users/notes/create"
@@ -23,7 +23,7 @@ import (
 func main() {
 	cfg := config.NewConfig()
 
-	logger.Init(cfg.Env)
+	setupLogger(cfg.Env)
 	slog.Info("logger initialized")
 
 	ctx := context.Background()
@@ -36,11 +36,7 @@ func main() {
 	slog.Info("storage initialized")
 
 	router := chi.NewRouter()
-	router.Use(middleware.RequestID)
-	router.Use(middleware.RealIP)
-	router.Use(middleware.Logger)
-	router.Use(middleware.Recoverer)
-	router.Use(middleware.URLFormat)
+	router.Use(logger.ApiInfo)
 
 	router.Post("/users", registration.New(storagePool))
 	router.Post("/users/{user_id}/notes", create.New(storagePool))
@@ -64,4 +60,19 @@ func main() {
 	}
 
 	slog.Error("server stopped")
+}
+
+func setupLogger(env string) {
+	var lgr *slog.Logger
+
+	switch env {
+	case "local":
+		lgr = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	case "product":
+		lgr = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	default:
+		log.Fatalf("unknown env name: %s", env)
+	}
+
+	slog.SetDefault(lgr)
 }

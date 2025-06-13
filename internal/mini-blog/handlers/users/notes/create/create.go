@@ -5,8 +5,6 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/go-chi/render"
-
 	"mini-blog/internal/lib/api/response"
 	"mini-blog/internal/lib/api/validapi"
 	"mini-blog/internal/lib/logger/sl"
@@ -33,14 +31,14 @@ func New(creator NotesCreator) http.HandlerFunc {
 		userId, err := validapi.Int64UrlParam(r, "user_id")
 		if err != nil {
 			slog.Error(err.Error())
-			render.JSON(w, r, Response{Response: response.Error(err.Error())})
+			response.Json(w, r, http.StatusBadRequest, response.ValidationError(err.Error()))
 			return
 		}
 
 		err = validapi.JsonBodyDecode(r, &req)
 		if err != nil {
 			slog.Error(err.Error())
-			render.JSON(w, r, Response{Response: response.Error(err.Error())})
+			response.Json(w, r, http.StatusBadRequest, response.ValidationError(err.Error()))
 			return
 		}
 
@@ -48,7 +46,7 @@ func New(creator NotesCreator) http.HandlerFunc {
 
 		if err := validapi.Request(req); err != nil {
 			slog.Error(err.Error())
-			render.JSON(w, r, Response{Response: response.Error(err.Error())})
+			response.Json(w, r, http.StatusBadRequest, response.ValidationError(err.Error()))
 			return
 		}
 
@@ -56,13 +54,13 @@ func New(creator NotesCreator) http.HandlerFunc {
 		if err != nil {
 			errMsg := "create note error"
 			slog.Error(errMsg, sl.Err(err))
-			render.JSON(w, r, Response{Response: response.Error(errMsg)})
+			response.Json(w, r, http.StatusBadRequest, response.ValidationError(err.Error()))
 			return
 		}
 
-		render.JSON(w, r, Response{
+		response.Json(w, r, http.StatusCreated, Response{
 			Id:       noteId,
-			Response: response.Ok(),
+			Response: response.Created(),
 		})
 	}
 }

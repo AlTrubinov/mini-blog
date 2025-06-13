@@ -5,8 +5,6 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/go-chi/render"
-
 	"mini-blog/internal/lib/api/response"
 	"mini-blog/internal/lib/api/validapi"
 	"mini-blog/internal/lib/logger/sl"
@@ -15,10 +13,6 @@ import (
 type Request struct {
 	Title   string `json:"title" validate:"required"`
 	Content string `json:"content,omitempty"`
-}
-
-type Response struct {
-	response.Response
 }
 
 type NoteUpdater interface {
@@ -30,14 +24,14 @@ func New(noteUpdater NoteUpdater) http.HandlerFunc {
 		userId, err := validapi.Int64UrlParam(r, "user_id")
 		if err != nil {
 			slog.Error(err.Error())
-			render.JSON(w, r, Response{Response: response.Error(err.Error())})
+			response.Json(w, r, http.StatusBadRequest, response.ValidationError(err.Error()))
 			return
 		}
 
 		noteId, err := validapi.Int64UrlParam(r, "note_id")
 		if err != nil {
 			slog.Error(err.Error())
-			render.JSON(w, r, Response{Response: response.Error(err.Error())})
+			response.Json(w, r, http.StatusBadRequest, response.ValidationError(err.Error()))
 			return
 		}
 
@@ -46,7 +40,7 @@ func New(noteUpdater NoteUpdater) http.HandlerFunc {
 		err = validapi.JsonBodyDecode(r, &req)
 		if err != nil {
 			slog.Error(err.Error())
-			render.JSON(w, r, Response{Response: response.Error(err.Error())})
+			response.Json(w, r, http.StatusBadRequest, response.ValidationError(err.Error()))
 			return
 		}
 
@@ -59,7 +53,7 @@ func New(noteUpdater NoteUpdater) http.HandlerFunc {
 
 		if err := validapi.Request(req); err != nil {
 			slog.Error(err.Error())
-			render.JSON(w, r, Response{Response: response.Error(err.Error())})
+			response.Json(w, r, http.StatusBadRequest, response.ValidationError(err.Error()))
 			return
 		}
 
@@ -67,10 +61,10 @@ func New(noteUpdater NoteUpdater) http.HandlerFunc {
 		if err != nil {
 			errMsg := "update note error"
 			slog.Error(errMsg, sl.Err(err))
-			render.JSON(w, r, Response{Response: response.Error(errMsg)})
+			response.Json(w, r, http.StatusBadRequest, response.ValidationError(err.Error()))
 			return
 		}
 
-		render.JSON(w, r, Response{Response: response.Ok()})
+		response.Json(w, r, http.StatusOK, response.Ok())
 	}
 }
