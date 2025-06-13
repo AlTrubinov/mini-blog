@@ -18,17 +18,15 @@ func Int64UrlParam(r *http.Request, paramName string) (int64, error) {
 	urlParamStr := chi.URLParam(r, paramName)
 	urlParam, err := strconv.ParseInt(urlParamStr, 10, 64)
 	if err != nil {
-		errMsg := "invalid %s: %s"
-		return 0, fmt.Errorf(errMsg, paramName, urlParamStr)
+		return 0, fmt.Errorf("invalid %s: %s", paramName, urlParamStr)
 	}
 	return urlParam, nil
 }
 
 func JsonBodyDecode(r *http.Request, v interface{}) error {
-	err := render.DecodeJSON(r.Body, &v)
+	err := render.DecodeJSON(r.Body, v)
 	if err != nil {
-		errMsg := "invalid JSON"
-		return fmt.Errorf(errMsg)
+		return fmt.Errorf("invalid JSON")
 	}
 	return nil
 }
@@ -39,8 +37,7 @@ func Request(v interface{}) error {
 		if errors.As(err, &validateErr) {
 			return fmt.Errorf(validateErrMsg(validateErr))
 		}
-		errMsg := "request validation failed by internal error: %w"
-		return fmt.Errorf(errMsg, err)
+		return fmt.Errorf("request validation failed by internal error: %w", err)
 	}
 	return nil
 }
