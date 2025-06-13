@@ -2,16 +2,13 @@ package update
 
 import (
 	"context"
-	"errors"
 	"log/slog"
 	"net/http"
-	"strconv"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
-	"github.com/go-playground/validator/v10"
 
 	"mini-blog/internal/lib/api/response"
+	"mini-blog/internal/lib/api/validapi"
 	"mini-blog/internal/lib/logger/sl"
 )
 
@@ -30,35 +27,26 @@ type NoteUpdater interface {
 
 func New(noteUpdater NoteUpdater) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userId, err := strconv.ParseInt(chi.URLParam(r, "user_id"), 10, 64)
+		userId, err := validapi.Int64UrlParam(r, "user_id")
 		if err != nil {
-			errMsg := "invalid user id"
-			slog.Info(errMsg)
-
-			render.JSON(w, r, Response{
-				Response: response.Error(errMsg),
-			})
+			slog.Error(err.Error())
+			render.JSON(w, r, Response{Response: response.Error(err.Error())})
 			return
 		}
 
-		noteId, err := strconv.ParseInt(chi.URLParam(r, "note_id"), 10, 64)
+		noteId, err := validapi.Int64UrlParam(r, "note_id")
 		if err != nil {
-			errMsg := "invalid note id"
-			slog.Info(errMsg)
-
-			render.JSON(w, r, Response{
-				Response: response.Error(errMsg),
-			})
+			slog.Error(err.Error())
+			render.JSON(w, r, Response{Response: response.Error(err.Error())})
 			return
 		}
 
 		var req Request
 
-		err = render.DecodeJSON(r.Body, &req)
+		err = validapi.JsonBodyDecode(r, &req)
 		if err != nil {
-			errMsg := "decode request body failed"
-			slog.Error(errMsg, sl.Err(err))
-			render.JSON(w, r, Response{Response: response.Error(errMsg)})
+			slog.Error(err.Error())
+			render.JSON(w, r, Response{Response: response.Error(err.Error())})
 			return
 		}
 
@@ -69,13 +57,9 @@ func New(noteUpdater NoteUpdater) http.HandlerFunc {
 			slog.Any("request", req),
 		)
 
-		if err := validator.New().Struct(req); err != nil {
-			var validateErr validator.ValidationErrors
-			errors.As(err, &validateErr)
-
-			errMsg := "request validation failed"
-			slog.Error(errMsg, sl.Err(err))
-			render.JSON(w, r, Response{Response: response.ValidationError(validateErr)})
+		if err := validapi.Request(req); err != nil {
+			slog.Error(err.Error())
+			render.JSON(w, r, Response{Response: response.Error(err.Error())})
 			return
 		}
 

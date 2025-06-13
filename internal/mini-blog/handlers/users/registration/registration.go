@@ -2,14 +2,13 @@ package registration
 
 import (
 	"context"
-	"errors"
 	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/render"
-	"github.com/go-playground/validator/v10"
 
 	"mini-blog/internal/lib/api/response"
+	"mini-blog/internal/lib/api/validapi"
 	"mini-blog/internal/lib/logger/sl"
 )
 
@@ -32,23 +31,18 @@ func New(userSaver UserSaver) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req Request
 
-		err := render.DecodeJSON(r.Body, &req)
+		err := validapi.JsonBodyDecode(r, &req)
 		if err != nil {
-			errMsg := "decode request body failed"
-			slog.Error(errMsg, sl.Err(err))
-			render.JSON(w, r, Response{Response: response.Error(errMsg)})
+			slog.Error(err.Error())
+			render.JSON(w, r, Response{Response: response.Error(err.Error())})
 			return
 		}
 
 		slog.Info("request body decoded", slog.Any("request", req))
 
-		if err := validator.New().Struct(req); err != nil {
-			var validateErr validator.ValidationErrors
-			errors.As(err, &validateErr)
-
-			errMsg := "request validation failed"
-			slog.Error(errMsg, sl.Err(err))
-			render.JSON(w, r, Response{Response: response.ValidationError(validateErr)})
+		if err := validapi.Request(req); err != nil {
+			slog.Error(err.Error())
+			render.JSON(w, r, Response{Response: response.Error(err.Error())})
 			return
 		}
 

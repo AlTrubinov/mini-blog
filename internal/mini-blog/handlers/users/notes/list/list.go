@@ -3,15 +3,15 @@ package list
 import (
 	"context"
 	"log/slog"
-	"mini-blog/internal/lib/logger/sl"
 	"net/http"
 	"strconv"
 	"strings"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 
 	"mini-blog/internal/lib/api/response"
+	"mini-blog/internal/lib/api/validapi"
+	"mini-blog/internal/lib/logger/sl"
 	"mini-blog/internal/models/note"
 )
 
@@ -34,14 +34,10 @@ const (
 
 func New(list NotesList) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userId, err := strconv.ParseInt(chi.URLParam(r, "user_id"), 10, 64)
+		userId, err := validapi.Int64UrlParam(r, "user_id")
 		if err != nil {
-			errMsg := "invalid user id"
-			slog.Info(errMsg)
-
-			render.JSON(w, r, Response{
-				Response: response.Error(errMsg),
-			})
+			slog.Error(err.Error())
+			render.JSON(w, r, Response{Response: response.Error(err.Error())})
 			return
 		}
 
