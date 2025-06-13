@@ -30,14 +30,14 @@ func ValidationError(msg string) Response {
 	}
 }
 
-func NotFound(msg string) Response {
+func NotFoundError(msg string) Response {
 	return Response{
 		Code:  http.StatusNotFound,
 		Error: msg,
 	}
 }
 
-func Forbidden(msg string) Response {
+func ForbiddenError(msg string) Response {
 	return Response{
 		Code:  http.StatusForbidden,
 		Error: msg,
@@ -51,7 +51,29 @@ func InternalError(msg string) Response {
 	}
 }
 
+func TimeoutError(msg string) Response {
+	return Response{
+		Code:  http.StatusRequestTimeout,
+		Error: msg,
+	}
+}
+
 func Json(w http.ResponseWriter, r *http.Request, code int, v interface{}) {
 	w.WriteHeader(code)
 	render.JSON(w, r, v)
+}
+
+func GetErrorResponseByCode(code int, msg string) Response {
+	switch code {
+	case http.StatusBadRequest:
+		return ValidationError(msg)
+	case http.StatusNotFound:
+		return NotFoundError(msg)
+	case http.StatusForbidden:
+		return ForbiddenError(msg)
+	case http.StatusRequestTimeout:
+		return TimeoutError(msg)
+	default:
+		return InternalError(msg)
+	}
 }

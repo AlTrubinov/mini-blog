@@ -7,7 +7,7 @@ import (
 
 	"mini-blog/internal/lib/api/response"
 	"mini-blog/internal/lib/api/validapi"
-	"mini-blog/internal/lib/logger/sl"
+	"mini-blog/pkg/apperror"
 )
 
 type Request struct {
@@ -23,15 +23,21 @@ func New(noteUpdater NoteUpdater) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userId, err := validapi.Int64UrlParam(r, "user_id")
 		if err != nil {
-			slog.Error(err.Error())
-			response.Json(w, r, http.StatusBadRequest, response.ValidationError(err.Error()))
+			errMsg := err.Error()
+			errCode := apperror.GetCodeByError(err)
+			errResp := response.GetErrorResponseByCode(errCode, errMsg)
+			slog.Error(errMsg)
+			response.Json(w, r, errCode, errResp)
 			return
 		}
 
 		noteId, err := validapi.Int64UrlParam(r, "note_id")
 		if err != nil {
-			slog.Error(err.Error())
-			response.Json(w, r, http.StatusBadRequest, response.ValidationError(err.Error()))
+			errMsg := err.Error()
+			errCode := apperror.GetCodeByError(err)
+			errResp := response.GetErrorResponseByCode(errCode, errMsg)
+			slog.Error(errMsg)
+			response.Json(w, r, errCode, errResp)
 			return
 		}
 
@@ -39,8 +45,11 @@ func New(noteUpdater NoteUpdater) http.HandlerFunc {
 
 		err = validapi.JsonBodyDecode(r, &req)
 		if err != nil {
-			slog.Error(err.Error())
-			response.Json(w, r, http.StatusBadRequest, response.ValidationError(err.Error()))
+			errMsg := err.Error()
+			errCode := apperror.GetCodeByError(err)
+			errResp := response.GetErrorResponseByCode(errCode, errMsg)
+			slog.Error(errMsg)
+			response.Json(w, r, errCode, errResp)
 			return
 		}
 
@@ -52,16 +61,21 @@ func New(noteUpdater NoteUpdater) http.HandlerFunc {
 		)
 
 		if err := validapi.Request(req); err != nil {
-			slog.Error(err.Error())
-			response.Json(w, r, http.StatusBadRequest, response.ValidationError(err.Error()))
+			errMsg := err.Error()
+			errCode := apperror.GetCodeByError(err)
+			errResp := response.GetErrorResponseByCode(errCode, errMsg)
+			slog.Error(errMsg)
+			response.Json(w, r, errCode, errResp)
 			return
 		}
 
 		err = noteUpdater.UpdateNote(r.Context(), userId, noteId, req.Title, req.Content)
 		if err != nil {
-			errMsg := "update note error"
-			slog.Error(errMsg, sl.Err(err))
-			response.Json(w, r, http.StatusBadRequest, response.ValidationError(err.Error()))
+			errMsg := err.Error()
+			errCode := apperror.GetCodeByError(err)
+			errResp := response.GetErrorResponseByCode(errCode, errMsg)
+			slog.Error(errMsg)
+			response.Json(w, r, errCode, errResp)
 			return
 		}
 

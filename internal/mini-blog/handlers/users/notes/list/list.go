@@ -9,8 +9,8 @@ import (
 
 	"mini-blog/internal/lib/api/response"
 	"mini-blog/internal/lib/api/validapi"
-	"mini-blog/internal/lib/logger/sl"
 	"mini-blog/internal/models/note"
+	"mini-blog/pkg/apperror"
 )
 
 type Response struct {
@@ -34,8 +34,11 @@ func New(list NotesList) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userId, err := validapi.Int64UrlParam(r, "user_id")
 		if err != nil {
-			slog.Error(err.Error())
-			response.Json(w, r, http.StatusBadRequest, response.ValidationError(err.Error()))
+			errMsg := err.Error()
+			errCode := apperror.GetCodeByError(err)
+			errResp := response.GetErrorResponseByCode(errCode, errMsg)
+			slog.Error(errMsg)
+			response.Json(w, r, errCode, errResp)
 			return
 		}
 
@@ -57,9 +60,11 @@ func New(list NotesList) http.HandlerFunc {
 
 		notes, err := list.GetUserNotes(r.Context(), userId, limit, offset, order)
 		if err != nil {
-			errMsg := "get notes list error"
-			slog.Error(errMsg, sl.Err(err))
-			response.Json(w, r, http.StatusBadRequest, response.ValidationError(err.Error()))
+			errMsg := err.Error()
+			errCode := apperror.GetCodeByError(err)
+			errResp := response.GetErrorResponseByCode(errCode, errMsg)
+			slog.Error(errMsg)
+			response.Json(w, r, errCode, errResp)
 			return
 		}
 

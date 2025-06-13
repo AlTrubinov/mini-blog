@@ -7,7 +7,7 @@ import (
 
 	"mini-blog/internal/lib/api/response"
 	"mini-blog/internal/lib/api/validapi"
-	"mini-blog/internal/lib/logger/sl"
+	"mini-blog/pkg/apperror"
 )
 
 type NoteDeleter interface {
@@ -18,15 +18,21 @@ func New(noteDeleter NoteDeleter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userId, err := validapi.Int64UrlParam(r, "user_id")
 		if err != nil {
-			slog.Error(err.Error())
-			response.Json(w, r, http.StatusBadRequest, response.ValidationError(err.Error()))
+			errMsg := err.Error()
+			errCode := apperror.GetCodeByError(err)
+			errResp := response.GetErrorResponseByCode(errCode, errMsg)
+			slog.Error(errMsg)
+			response.Json(w, r, errCode, errResp)
 			return
 		}
 
 		noteId, err := validapi.Int64UrlParam(r, "note_id")
 		if err != nil {
-			slog.Error(err.Error())
-			response.Json(w, r, http.StatusBadRequest, response.ValidationError(err.Error()))
+			errMsg := err.Error()
+			errCode := apperror.GetCodeByError(err)
+			errResp := response.GetErrorResponseByCode(errCode, errMsg)
+			slog.Error(errMsg)
+			response.Json(w, r, errCode, errResp)
 			return
 		}
 
@@ -34,9 +40,11 @@ func New(noteDeleter NoteDeleter) http.HandlerFunc {
 
 		err = noteDeleter.DeleteNote(r.Context(), userId, noteId)
 		if err != nil {
-			errMsg := "delete note error"
-			slog.Error(errMsg, sl.Err(err))
-			response.Json(w, r, http.StatusBadRequest, response.ValidationError(err.Error()))
+			errMsg := err.Error()
+			errCode := apperror.GetCodeByError(err)
+			errResp := response.GetErrorResponseByCode(errCode, errMsg)
+			slog.Error(errMsg)
+			response.Json(w, r, errCode, errResp)
 			return
 		}
 

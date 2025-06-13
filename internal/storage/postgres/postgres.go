@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -12,6 +11,7 @@ import (
 	"mini-blog/internal/config"
 	"mini-blog/internal/models/note"
 	"mini-blog/internal/models/user"
+	"mini-blog/pkg/apperror"
 )
 
 type Storage struct {
@@ -28,11 +28,11 @@ func NewStorage(ctx context.Context, DBConf config.Database) (*Storage, error) {
 	)
 	dbPool, err := pgxpool.New(ctx, dbConnStr)
 	if err != nil {
-		return nil, fmt.Errorf("unable to create connection pool: %w", err)
+		return nil, fmt.Errorf("%w: unable to create connection pool", err)
 	}
 	if err = dbPool.Ping(ctx); err != nil {
 		dbPool.Close()
-		return nil, fmt.Errorf("unable to ping connection pool: %w", err)
+		return nil, fmt.Errorf("%w: unable to ping connection pool", err)
 	}
 
 	return &Storage{db: dbPool}, nil
@@ -51,7 +51,10 @@ func (storage *Storage) SaveUser(ctx context.Context, username string) (int64, e
 		username,
 	).Scan(&u.Id, &u.Username, &u.CreatedAt)
 	if err != nil {
-		return 0, fmt.Errorf("save url error, %w", err)
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return 0, fmt.Errorf("%w: context canceled or timed out", apperror.ErrTimeout)
+		}
+		return 0, fmt.Errorf("%w: failed to save user", apperror.ErrInternal)
 	}
 
 	return u.Id, nil
@@ -66,7 +69,10 @@ func (storage *Storage) CreateNote(ctx context.Context, userId int64, title stri
 		userId, title, content,
 	).Scan(&n.Id)
 	if err != nil {
-		return 0, fmt.Errorf("save note error, %w", err)
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return 0, fmt.Errorf("%w: context canceled or timed out", apperror.ErrTimeout)
+		}
+		return 0, fmt.Errorf("%w: failed to create note", apperror.ErrInternal)
 	}
 
 	return n.Id, nil
@@ -82,7 +88,10 @@ func (storage *Storage) GetUserNotes(ctx context.Context, userId int64, limit in
 
 	rows, err := storage.db.Query(ctx, stmt, userId, limit, offset)
 	if err != nil {
-		return nil, fmt.Errorf("get notes list error, %w", err)
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return nil, fmt.Errorf("%w: context canceled or timed out", apperror.ErrTimeout)
+		}
+		return nil, fmt.Errorf("%w: failed to get notes list", apperror.ErrInternal)
 	}
 	defer rows.Close()
 
@@ -96,8 +105,12 @@ func (storage *Storage) GetUserNotes(ctx context.Context, userId int64, limit in
 	}
 
 	if err := rows.Err(); err != nil {
-		slog.Error("rows error, %w", err)
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return nil, fmt.Errorf("%w: rows iteration timeout", apperror.ErrTimeout)
+		}
+		return nil, fmt.Errorf("%w: rows iteration error", apperror.ErrInternal)
 	}
+
 	return resNotes, nil
 }
 
@@ -108,12 +121,16 @@ func (storage *Storage) GetUserNote(ctx context.Context, userId int64, noteId in
 
 	err := storage.db.QueryRow(ctx, stmt, userId, noteId).Scan(&n.Id, &n.UserId, &n.Title, &n.Content, &n.CreatedAt, &n.UpdatedAt)
 
-	if errors.Is(err, pgx.ErrNoRows) {
-		return note.Note{}, err
-	} else if err != nil {
-		return note.Note{}, fmt.Errorf("get note error, %w", err)
+	switch {
+	case errors.Is(err, pgx.ErrNoRows):
+		return note.Note{}, fmt.Errorf("%w: note %d not found", apperror.ErrNotFound, noteId)
+	case errors.Is(err, context.Canceled), errors.Is(err, context.DeadlineExceeded):
+		return note.Note{}, fmt.Errorf("%w: timeout while retrieving note", apperror.ErrTimeout)
+	case err != nil:
+		return note.Note{}, fmt.Errorf("%w: failed to get note", apperror.ErrInternal)
+	default:
+		return n, nil
 	}
-	return n, nil
 }
 
 func (storage *Storage) UpdateNote(ctx context.Context, userId int64, noteId int64, title string, content string) error {
@@ -121,11 +138,14 @@ func (storage *Storage) UpdateNote(ctx context.Context, userId int64, noteId int
 
 	res, err := storage.db.Exec(ctx, stmt, title, content, userId, noteId)
 	if err != nil {
-		return fmt.Errorf("update note error, %w", err)
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return fmt.Errorf("%w: context canceled or timed out", apperror.ErrTimeout)
+		}
+		return fmt.Errorf("%w: failed to update note", apperror.ErrInternal)
 	}
 
 	if rowsAffected := res.RowsAffected(); rowsAffected == 0 {
-		return fmt.Errorf("note not found")
+		return fmt.Errorf("%w: note %d not found", apperror.ErrNotFound, noteId)
 	}
 
 	return nil
@@ -136,11 +156,14 @@ func (storage *Storage) DeleteNote(ctx context.Context, userId int64, noteId int
 
 	res, err := storage.db.Exec(ctx, stmt, userId, noteId)
 	if err != nil {
-		return fmt.Errorf("delete note error, %w", err)
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return fmt.Errorf("%w: context canceled or timed out", apperror.ErrTimeout)
+		}
+		return fmt.Errorf("%w: failed to delete note", apperror.ErrInternal)
 	}
 
 	if rowsAffected := res.RowsAffected(); rowsAffected == 0 {
-		return fmt.Errorf("note not found")
+		return fmt.Errorf("%w: note %d not found", apperror.ErrNotFound, noteId)
 	}
 
 	return nil

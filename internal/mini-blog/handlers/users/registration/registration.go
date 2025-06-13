@@ -7,7 +7,7 @@ import (
 
 	"mini-blog/internal/lib/api/response"
 	"mini-blog/internal/lib/api/validapi"
-	"mini-blog/internal/lib/logger/sl"
+	"mini-blog/pkg/apperror"
 )
 
 type Request struct {
@@ -31,24 +31,32 @@ func New(userSaver UserSaver) http.HandlerFunc {
 
 		err := validapi.JsonBodyDecode(r, &req)
 		if err != nil {
-			slog.Error(err.Error())
-			response.Json(w, r, http.StatusBadRequest, response.ValidationError(err.Error()))
+			errMsg := err.Error()
+			errCode := apperror.GetCodeByError(err)
+			errResp := response.GetErrorResponseByCode(errCode, errMsg)
+			slog.Error(errMsg)
+			response.Json(w, r, errCode, errResp)
 			return
 		}
 
 		slog.Info("request body decoded", slog.Any("request", req))
 
 		if err := validapi.Request(req); err != nil {
-			slog.Error(err.Error())
-			response.Json(w, r, http.StatusBadRequest, response.ValidationError(err.Error()))
+			errMsg := err.Error()
+			errCode := apperror.GetCodeByError(err)
+			errResp := response.GetErrorResponseByCode(errCode, errMsg)
+			slog.Error(errMsg)
+			response.Json(w, r, errCode, errResp)
 			return
 		}
 
 		userId, err := userSaver.SaveUser(r.Context(), req.Username)
 		if err != nil {
-			errMsg := "save user failed"
-			slog.Error(errMsg, sl.Err(err))
-			response.Json(w, r, http.StatusBadRequest, response.ValidationError(err.Error()))
+			errMsg := err.Error()
+			errCode := apperror.GetCodeByError(err)
+			errResp := response.GetErrorResponseByCode(errCode, errMsg)
+			slog.Error(errMsg)
+			response.Json(w, r, errCode, errResp)
 			return
 		}
 

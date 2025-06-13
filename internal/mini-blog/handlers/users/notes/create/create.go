@@ -7,7 +7,7 @@ import (
 
 	"mini-blog/internal/lib/api/response"
 	"mini-blog/internal/lib/api/validapi"
-	"mini-blog/internal/lib/logger/sl"
+	"mini-blog/pkg/apperror"
 )
 
 type Request struct {
@@ -30,31 +30,42 @@ func New(creator NotesCreator) http.HandlerFunc {
 
 		userId, err := validapi.Int64UrlParam(r, "user_id")
 		if err != nil {
-			slog.Error(err.Error())
-			response.Json(w, r, http.StatusBadRequest, response.ValidationError(err.Error()))
+			errMsg := err.Error()
+			errCode := apperror.GetCodeByError(err)
+			errResp := response.GetErrorResponseByCode(errCode, errMsg)
+			slog.Error(errMsg)
+			response.Json(w, r, errCode, errResp)
 			return
 		}
 
 		err = validapi.JsonBodyDecode(r, &req)
 		if err != nil {
-			slog.Error(err.Error())
-			response.Json(w, r, http.StatusBadRequest, response.ValidationError(err.Error()))
+			errMsg := err.Error()
+			errCode := apperror.GetCodeByError(err)
+			errResp := response.GetErrorResponseByCode(errCode, errMsg)
+			slog.Error(errMsg)
+			response.Json(w, r, errCode, errResp)
 			return
 		}
 
 		slog.Info("request body decoded", slog.Any("request", req))
 
 		if err := validapi.Request(req); err != nil {
-			slog.Error(err.Error())
-			response.Json(w, r, http.StatusBadRequest, response.ValidationError(err.Error()))
+			errMsg := err.Error()
+			errCode := apperror.GetCodeByError(err)
+			errResp := response.GetErrorResponseByCode(errCode, errMsg)
+			slog.Error(errMsg)
+			response.Json(w, r, errCode, errResp)
 			return
 		}
 
 		noteId, err := creator.CreateNote(r.Context(), userId, req.Title, req.Content)
 		if err != nil {
-			errMsg := "create note error"
-			slog.Error(errMsg, sl.Err(err))
-			response.Json(w, r, http.StatusBadRequest, response.ValidationError(err.Error()))
+			errMsg := err.Error()
+			errCode := apperror.GetCodeByError(err)
+			errResp := response.GetErrorResponseByCode(errCode, errMsg)
+			slog.Error(errMsg)
+			response.Json(w, r, errCode, errResp)
 			return
 		}
 
