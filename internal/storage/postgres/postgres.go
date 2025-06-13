@@ -130,3 +130,18 @@ func (storage *Storage) UpdateNote(ctx context.Context, userId int64, noteId int
 
 	return nil
 }
+
+func (storage *Storage) DeleteNote(ctx context.Context, userId int64, noteId int64) error {
+	stmt := "DELETE FROM notes WHERE user_id = $1 AND id = $2"
+
+	res, err := storage.db.Exec(ctx, stmt, userId, noteId)
+	if err != nil {
+		return fmt.Errorf("delete note error, %w", err)
+	}
+
+	if rowsAffected := res.RowsAffected(); rowsAffected == 0 {
+		return fmt.Errorf("note not found")
+	}
+
+	return nil
+}

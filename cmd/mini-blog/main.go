@@ -11,6 +11,7 @@ import (
 
 	"mini-blog/internal/config"
 	"mini-blog/internal/mini-blog/handlers/users/notes/create"
+	"mini-blog/internal/mini-blog/handlers/users/notes/delete"
 	"mini-blog/internal/mini-blog/handlers/users/notes/get"
 	"mini-blog/internal/mini-blog/handlers/users/notes/list"
 	"mini-blog/internal/mini-blog/handlers/users/notes/update"
@@ -46,6 +47,7 @@ func main() {
 	router.Get("/users/{user_id}/notes", list.New(storagePool))
 	router.Get("/users/{user_id}/notes/{note_id}", get.New(storagePool))
 	router.Put("/users/{user_id}/notes/{note_id}", update.New(storagePool))
+	router.Delete("/users/{user_id}/notes/{note_id}", delete.New(storagePool))
 
 	slog.Info("starting server", slog.String("address", cfg.Address))
 
