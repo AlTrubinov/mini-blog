@@ -12,6 +12,7 @@ type Config struct {
 	Env string `yaml:"env" env-required:"true"`
 	Database
 	HTTPServer
+	Auth
 }
 
 type Database struct {
@@ -26,6 +27,12 @@ type HTTPServer struct {
 	Address     string        `yaml:"address" env-required:"true"`
 	Timeout     time.Duration `yaml:"timeout" env-default:"5s"`
 	IdleTimeout time.Duration `yaml:"idle_timeout" env-default:"60s"`
+}
+
+type Auth struct {
+	JwtSecret              string `yaml:"jwt_secret" env-required:"true"`
+	AccessTokenExpireMins  int    `yaml:"access_token_expire_mins" env-required:"true"`
+	RefreshTokenExpireDays int    `yaml:"refresh_token_expire_days" env-required:"true"`
 }
 
 func NewConfig() *Config {

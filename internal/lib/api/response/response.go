@@ -58,6 +58,13 @@ func TimeoutError(msg string) Response {
 	}
 }
 
+func UnauthorizedError(msg string) Response {
+	return Response{
+		Code:  http.StatusUnauthorized,
+		Error: msg,
+	}
+}
+
 func Json(w http.ResponseWriter, r *http.Request, code int, v interface{}) {
 	w.WriteHeader(code)
 	render.JSON(w, r, v)
@@ -73,6 +80,8 @@ func GetErrorResponseByCode(code int, msg string) Response {
 		return ForbiddenError(msg)
 	case http.StatusRequestTimeout:
 		return TimeoutError(msg)
+	case http.StatusUnauthorized:
+		return UnauthorizedError(msg)
 	default:
 		return InternalError(msg)
 	}

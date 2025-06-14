@@ -5,27 +5,31 @@ import (
 	"log/slog"
 	"net/http"
 
+	"golang.org/x/crypto/bcrypt"
+
 	"mini-blog/internal/lib/api/response"
 	"mini-blog/internal/lib/api/validapi"
+	"mini-blog/internal/lib/auth"
 	"mini-blog/pkg/apperror"
 )
 
 type Request struct {
 	Username string `json:"username" validate:"required"`
+	Password string `json:"password" validate:"required"`
 }
 
 type Response struct {
-	Id       int64  `json:"id,omitempty"`
-	Username string `json:"username,omitempty"`
+	Id int64 `json:"id,omitempty"`
+	auth.JwtToken
 	response.Response
 }
 
 //go:generate mockery
 type UserSaver interface {
-	SaveUser(ctx context.Context, username string) (int64, error)
+	SaveUser(ctx context.Context, username string, passwordHash string) (int64, error)
 }
 
-func New(userSaver UserSaver) http.HandlerFunc {
+func New(userSaver UserSaver, tm *auth.TokenManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req Request
 
@@ -39,7 +43,7 @@ func New(userSaver UserSaver) http.HandlerFunc {
 			return
 		}
 
-		slog.Info("request body decoded", slog.Any("request", req))
+		slog.Info("request body decoded", slog.Any("request_username", req.Username))
 
 		if err := validapi.Request(req); err != nil {
 			errMsg := err.Error()
@@ -50,7 +54,26 @@ func New(userSaver UserSaver) http.HandlerFunc {
 			return
 		}
 
-		userId, err := userSaver.SaveUser(r.Context(), req.Username)
+		hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+		if err != nil {
+			errMsg := err.Error()
+			errCode := apperror.GetCodeByError(err)
+			errResp := response.GetErrorResponseByCode(errCode, errMsg)
+			slog.Error(errMsg)
+			response.Json(w, r, errCode, errResp)
+		}
+
+		userId, err := userSaver.SaveUser(r.Context(), req.Username, string(hash))
+		if err != nil {
+			errMsg := err.Error()
+			errCode := apperror.GetCodeByError(err)
+			errResp := response.GetErrorResponseByCode(errCode, errMsg)
+			slog.Error(errMsg)
+			response.Json(w, r, errCode, errResp)
+			return
+		}
+
+		token, err := tm.Generate(userId)
 		if err != nil {
 			errMsg := err.Error()
 			errCode := apperror.GetCodeByError(err)
@@ -62,7 +85,7 @@ func New(userSaver UserSaver) http.HandlerFunc {
 
 		response.Json(w, r, http.StatusCreated, Response{
 			Id:       userId,
-			Username: req.Username,
+			JwtToken: token,
 			Response: response.Created(),
 		})
 	}

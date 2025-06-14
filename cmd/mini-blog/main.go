@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"mini-blog/internal/config"
+	"mini-blog/internal/lib/auth"
 	"mini-blog/internal/mini-blog/handlers/users/notes/create"
 	"mini-blog/internal/mini-blog/handlers/users/notes/delete"
 	"mini-blog/internal/mini-blog/handlers/users/notes/get"
@@ -35,15 +36,25 @@ func main() {
 	defer storagePool.Close()
 	slog.Info("storage initialized")
 
+	authManager := auth.NewTokenManager(cfg.Auth)
+	slog.Info("auth initialized")
+
 	router := chi.NewRouter()
 	router.Use(logger.ApiInfo)
 
-	router.Post("/users", registration.New(storagePool))
-	router.Post("/users/{user_id}/notes", create.New(storagePool))
-	router.Get("/users/{user_id}/notes", list.New(storagePool))
-	router.Get("/users/{user_id}/notes/{note_id}", get.New(storagePool))
-	router.Put("/users/{user_id}/notes/{note_id}", update.New(storagePool))
-	router.Delete("/users/{user_id}/notes/{note_id}", delete.New(storagePool))
+	router.Post("/users", registration.New(storagePool, authManager))
+	router.Group(func(r chi.Router) {
+		// TODO: add login|refresh handlers for auth before use
+		//r.Use(authManager.Middleware)
+
+		r.Route("/users/{user_id}/notes", func(r chi.Router) {
+			r.Post("/", create.New(storagePool))
+			r.Get("/", list.New(storagePool))
+			r.Get("/{note_id}", get.New(storagePool))
+			r.Put("/{note_id}", update.New(storagePool))
+			r.Delete("/{note_id}", delete.New(storagePool))
+		})
+	})
 
 	slog.Info("starting server", slog.String("address", cfg.Address))
 

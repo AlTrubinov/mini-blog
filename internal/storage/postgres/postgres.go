@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"mini-blog/internal/config"
@@ -42,17 +43,23 @@ func (storage *Storage) Close() {
 	storage.db.Close()
 }
 
-func (storage *Storage) SaveUser(ctx context.Context, username string) (int64, error) {
+func (storage *Storage) SaveUser(ctx context.Context, username string, passwordHash string) (int64, error) {
 	var u user.User
 
 	err := storage.db.QueryRow(
 		ctx,
-		"INSERT INTO users (username) VALUES ($1) RETURNING id, username, created_at",
-		username,
+		"INSERT INTO users (username, password) VALUES ($1, $2) RETURNING id, username, created_at",
+		username, passwordHash,
 	).Scan(&u.Id, &u.Username, &u.CreatedAt)
+
 	if err != nil {
 		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-			return 0, fmt.Errorf("%w: context canceled or timed out", apperror.ErrTimeout)
+			return 0, fmt.Errorf("%w: timeout while save user", apperror.ErrTimeout)
+		}
+
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return 0, fmt.Errorf("%w: username already exists", apperror.ErrValidation)
 		}
 		return 0, fmt.Errorf("%w: failed to save user", apperror.ErrInternal)
 	}
