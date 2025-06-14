@@ -51,11 +51,11 @@ func main() {
 		r.Use(authManager.Middleware)
 
 		r.Route("/users/{user_id}/notes", func(r chi.Router) {
-			r.Post("/", create.New(storagePool))
-			r.Get("/", list.New(storagePool))
-			r.Get("/{note_id}", get.New(storagePool))
-			r.Put("/{note_id}", update.New(storagePool))
-			r.Delete("/{note_id}", delete.New(storagePool))
+			r.Post("/", create.New(storagePool, authManager))
+			r.Get("/", list.New(storagePool, authManager))
+			r.Get("/{note_id}", get.New(storagePool, authManager))
+			r.Put("/{note_id}", update.New(storagePool, authManager))
+			r.Delete("/{note_id}", delete.New(storagePool, authManager))
 		})
 	})
 

@@ -3,6 +3,7 @@ package get
 import (
 	"context"
 	"log/slog"
+	"mini-blog/internal/lib/auth"
 	"net/http"
 
 	"mini-blog/internal/lib/api/response"
@@ -20,10 +21,19 @@ type NoteGetter interface {
 	GetUserNote(ctx context.Context, userId int64, noteId int64) (note.Note, error)
 }
 
-func New(noteGetter NoteGetter) http.HandlerFunc {
+func New(noteGetter NoteGetter, tm *auth.TokenManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userId, err := validapi.Int64UrlParam(r, "user_id")
 		if err != nil {
+			errMsg := err.Error()
+			errCode := apperror.GetCodeByError(err)
+			errResp := response.GetErrorResponseByCode(errCode, errMsg)
+			slog.Error(errMsg)
+			response.Json(w, r, errCode, errResp)
+			return
+		}
+
+		if err = tm.CheckUserAccess(r.Context(), userId); err != nil {
 			errMsg := err.Error()
 			errCode := apperror.GetCodeByError(err)
 			errResp := response.GetErrorResponseByCode(errCode, errMsg)

@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -80,4 +81,12 @@ func (tm *TokenManager) Parse(tokenStr string) (jwt.MapClaims, error) {
 		return nil, fmt.Errorf("%w: invalid claims", apperror.ErrForbidden)
 	}
 	return claims, nil
+}
+
+func (tm *TokenManager) CheckUserAccess(ctx context.Context, userId int64) error {
+	ctxUserId, ok := ctx.Value(ContextKeyUserId).(int64)
+	if !ok || ctxUserId != userId {
+		return fmt.Errorf("%w: access denied", apperror.ErrForbidden)
+	}
+	return nil
 }
