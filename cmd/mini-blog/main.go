@@ -46,7 +46,6 @@ func main() {
 	router.Post("/users", registration.New(storagePool, authManager))
 	router.Post("/login", login.New(storagePool, authManager))
 	router.Group(func(r chi.Router) {
-		// TODO: add login|refresh handlers for auth before use
 		r.Use(authManager.Middleware)
 
 		r.Route("/users/{user_id}/notes", func(r chi.Router) {
