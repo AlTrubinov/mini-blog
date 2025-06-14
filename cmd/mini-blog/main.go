@@ -18,6 +18,7 @@ import (
 	"mini-blog/internal/mini-blog/handlers/users/notes/list"
 	"mini-blog/internal/mini-blog/handlers/users/notes/update"
 	"mini-blog/internal/mini-blog/handlers/users/registration"
+	"mini-blog/internal/mini-blog/handlers/users/token"
 	"mini-blog/internal/storage/postgres"
 	"mini-blog/pkg/logger"
 )
@@ -45,6 +46,7 @@ func main() {
 
 	router.Post("/users", registration.New(storagePool, authManager))
 	router.Post("/login", login.New(storagePool, authManager))
+	router.Post("/refresh", token.New(authManager))
 	router.Group(func(r chi.Router) {
 		r.Use(authManager.Middleware)
 
