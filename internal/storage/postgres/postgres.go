@@ -67,6 +67,24 @@ func (storage *Storage) SaveUser(ctx context.Context, username string, passwordH
 	return u.Id, nil
 }
 
+func (storage *Storage) GetUser(ctx context.Context, username string) (user.User, error) {
+	var u user.User
+
+	stmt := "SELECT id, username, created_at, password FROM users WHERE username = $1"
+	err := storage.db.QueryRow(ctx, stmt, username).Scan(&u.Id, &u.Username, &u.CreatedAt, &u.Password)
+
+	switch {
+	case errors.Is(err, pgx.ErrNoRows):
+		return user.User{}, fmt.Errorf("%w: user not found", apperror.ErrNotFound)
+	case errors.Is(err, context.Canceled), errors.Is(err, context.DeadlineExceeded):
+		return user.User{}, fmt.Errorf("%w: timeout while retrieving user", apperror.ErrTimeout)
+	case err != nil:
+		return user.User{}, fmt.Errorf("%w: failed to get user", apperror.ErrInternal)
+	default:
+		return u, nil
+	}
+}
+
 func (storage *Storage) CreateNote(ctx context.Context, userId int64, title string, content string) (int64, error) {
 	var n note.Note
 

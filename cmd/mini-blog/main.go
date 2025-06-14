@@ -11,6 +11,7 @@ import (
 
 	"mini-blog/internal/config"
 	"mini-blog/internal/lib/auth"
+	"mini-blog/internal/mini-blog/handlers/users/login"
 	"mini-blog/internal/mini-blog/handlers/users/notes/create"
 	"mini-blog/internal/mini-blog/handlers/users/notes/delete"
 	"mini-blog/internal/mini-blog/handlers/users/notes/get"
@@ -43,9 +44,10 @@ func main() {
 	router.Use(logger.ApiInfo)
 
 	router.Post("/users", registration.New(storagePool, authManager))
+	router.Post("/login", login.New(storagePool, authManager))
 	router.Group(func(r chi.Router) {
 		// TODO: add login|refresh handlers for auth before use
-		//r.Use(authManager.Middleware)
+		r.Use(authManager.Middleware)
 
 		r.Route("/users/{user_id}/notes", func(r chi.Router) {
 			r.Post("/", create.New(storagePool))
