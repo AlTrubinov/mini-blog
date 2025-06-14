@@ -24,7 +24,6 @@ type Response struct {
 	response.Response
 }
 
-//go:generate mockery
 type UserSaver interface {
 	SaveUser(ctx context.Context, username string, passwordHash string) (int64, error)
 }
