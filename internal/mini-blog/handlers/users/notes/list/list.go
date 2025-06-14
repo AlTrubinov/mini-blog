@@ -3,13 +3,13 @@ package list
 import (
 	"context"
 	"log/slog"
-	"mini-blog/internal/lib/auth"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"mini-blog/internal/lib/api/response"
 	"mini-blog/internal/lib/api/validapi"
+	"mini-blog/internal/lib/auth"
 	"mini-blog/internal/models/note"
 	"mini-blog/pkg/apperror"
 )

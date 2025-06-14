@@ -3,11 +3,11 @@ package get
 import (
 	"context"
 	"log/slog"
-	"mini-blog/internal/lib/auth"
 	"net/http"
 
 	"mini-blog/internal/lib/api/response"
 	"mini-blog/internal/lib/api/validapi"
+	"mini-blog/internal/lib/auth"
 	"mini-blog/internal/models/note"
 	"mini-blog/pkg/apperror"
 )
