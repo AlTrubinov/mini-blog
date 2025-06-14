@@ -1,0 +1,15 @@
+env: "local" # local, product
+database:
+  user: postgres
+  password: postgres
+  host: db
+  port: 5432
+  name: mini-blog
+httpserver:
+  address: "0.0.0.0:8082"
+  timeout: 5s
+  idle_timeout: 60s
+auth:
+  jwt_secret: "12345"
+  access_token_expire_mins: 15
+  refresh_token_expire_days: 7
