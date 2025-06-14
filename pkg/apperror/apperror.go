@@ -6,11 +6,12 @@ import (
 )
 
 var (
-	ErrValidation = errors.New("validation error")
-	ErrNotFound   = errors.New("not found")
-	ErrForbidden  = errors.New("forbidden")
-	ErrInternal   = errors.New("internal error")
-	ErrTimeout    = errors.New("timeout error")
+	ErrValidation   = errors.New("validation error")
+	ErrNotFound     = errors.New("not found")
+	ErrForbidden    = errors.New("forbidden")
+	ErrInternal     = errors.New("internal error")
+	ErrTimeout      = errors.New("timeout error")
+	ErrUnauthorized = errors.New("authorization failed")
 )
 
 func GetCodeByError(err error) int {
@@ -24,6 +25,8 @@ func GetCodeByError(err error) int {
 		code = http.StatusForbidden
 	case errors.Is(err, ErrTimeout):
 		code = http.StatusRequestTimeout
+	case errors.Is(err, ErrUnauthorized):
+		code = http.StatusUnauthorized
 	default:
 		code = http.StatusInternalServerError
 	}

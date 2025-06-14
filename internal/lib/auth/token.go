@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -64,7 +65,14 @@ func (tm *TokenManager) Parse(tokenStr string) (jwt.MapClaims, error) {
 	})
 
 	if err != nil || !token.Valid {
-		return nil, fmt.Errorf("%w: invalid token", apperror.ErrForbidden)
+		switch {
+		case errors.Is(err, jwt.ErrTokenExpired):
+			return nil, fmt.Errorf("%w: token is expire", apperror.ErrUnauthorized)
+		case errors.Is(err, jwt.ErrTokenNotValidYet):
+			return nil, fmt.Errorf("%w: token is not active yet", apperror.ErrUnauthorized)
+		default:
+			return nil, fmt.Errorf("%w: invalid token", apperror.ErrForbidden)
+		}
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
